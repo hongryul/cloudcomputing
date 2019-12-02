@@ -1,0 +1,80 @@
+#include <ESP8266WiFi.h> // ESP 8266 와이파이 라이브러리
+#include "DHT.h"
+
+#define DHTTYPE DHT22
+#define DHTPIN 2
+String apiWritekey = "E1MHIPOMZ6WQ08ZF";
+const char* ssid = "LAB";
+const char* password = "123123123";
+
+const char* server = "api.thingspeak.com";
+
+//WiFiServer server(80);
+
+DHT dht(DHTPIN,DHTTYPE);
+
+//float resolution = 3.3/1023;
+  
+WiFiClient client;
+
+void setup()
+{
+  // 시리얼 세팅
+    Serial.begin(115200);
+  WiFi.disconnect();
+  delay(10);
+  WiFi.begin(ssid,password);
+  Serial.println();
+  WiFi.begin(ssid,password);
+  Serial.println("WiFi connecting to ");
+  WiFi.begin(ssid,password);
+  
+  while(WiFi.status() != WL_CONNECTED) {
+    delay(500);
+    Serial.print(".");
+  }
+  Serial.println("");
+  Serial.print("esp8266 connected to WiFi ...");
+  Serial.println(ssid);
+  Serial.println();
+  
+  dht.begin(); 
+}
+
+void loop() {
+  float temp= dht.readHumidity();
+  float humi = dht.readHumidity();
+
+     if(client.connect(server,80)){
+    String tsData = apiWritekey;
+    tsData +="&field1=";
+    tsData += String(temp);
+    tsData +="&field2=";
+    tsData += String(humi);
+    tsData +="\r\n\r\n";
+    
+
+    client.print("POST /update HTTP/1.1\n");
+    client.print("Host: api.thingspeak.com\n");
+    client.print("Connection: close\n");
+    client.print("X-THINGSPEAKAPIKEY: "+apiWritekey+"\n");
+    client.print("Content-Type: application/x-www-form-urlencoded\n");
+    client.print("Content-Length: ");
+    client.print(tsData.length());
+    client.print("\n\n");
+    client.print(tsData);
+    
+    Serial.print("Temperature: ");
+    Serial.print(temp);
+    Serial.print("Humidity: ");
+    Serial.print(humi);
+    Serial.println("uploaded to Thingspeak server");
+    
+  }
+  client.stop();
+
+  Serial.println("Waiting to upload next reading...");
+  Serial.println();
+  delay(15000);
+
+}
